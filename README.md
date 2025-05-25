@@ -29,3 +29,6 @@ Permitir que o usuário:
   - **OpenAI File Upload + Responses API** – para permitir leitura contextual de arquivos de receitas
   - **Cosine Similarity Local** – para validar produtos similares na montagem do carrinho
 
+## Diagrama ER
+
+![Diagrama ER](https://www.mermaidchart.com/raw/22c659e3-cd50-4982-9960-3e32b8b287bf?theme=light&version=v0.1&format=svg)
