@@ -1,19 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Search, ShoppingCart, Star } from "lucide-react"
-import { searchProducts, addToCart, clearCartAndAdd, getCurrentCart } from "@/lib/mockBackend"
+import { addToCart, clearCartAndAdd, searchProducts } from "@/lib/mockBackend"
 import { mockStores } from "@/lib/mockData"
-import { useApp } from "@/contexts/AppContext"
 import type { Product } from "@/lib/types"
+import { Search, ShoppingCart, Star } from "lucide-react"
+import Image from "next/image"
+import { useEffect, useState } from "react"
+import { fetchProducts } from "../../api"
 
 export default function ProductsPage() {
-  const { currentCart, setCurrentCart } = useApp()
   const [products, setProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedStore, setSelectedStore] = useState<string>("all")
@@ -23,10 +23,6 @@ export default function ProductsPage() {
     productId: string
     conflictStore: string
   }>({ show: false, productId: "", conflictStore: "" })
-
-  useEffect(() => {
-    getCurrentCart().then(setCurrentCart)
-  }, [setCurrentCart])
 
   useEffect(() => {
     if (searchTerm) {
@@ -41,7 +37,7 @@ export default function ProductsPage() {
 
     setLoading(true)
     try {
-      const results = await searchProducts(searchTerm, selectedStore === "all" ? undefined : selectedStore)
+      const results = await fetchProducts()
       setProducts(results)
     } catch (error) {
       console.error("Erro na busca:", error)
@@ -64,7 +60,6 @@ export default function ProductsPage() {
       }
 
       if (result.success && result.cart) {
-        setCurrentCart(result.cart)
         alert("Produto adicionado ao carrinho!")
       }
     } catch (error) {
@@ -77,7 +72,6 @@ export default function ProductsPage() {
       const result = await clearCartAndAdd(showConflictDialog.productId)
 
       if (result.success && result.cart) {
-        setCurrentCart(result.cart)
         alert("Carrinho anterior removido e novo produto adicionado!")
       }
     } catch (error) {
@@ -138,37 +132,23 @@ export default function ProductsPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900">{product.name}</h3>
                       <p className="text-sm text-gray-600">{product.description}</p>
-                      <Badge variant="secondary" className="mt-1">
-                        {product.category}
-                      </Badge>
                     </div>
-                    <img
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="text-lg">{product.store.logo}</span>
                       <div>
                         <p className="text-sm font-medium">{product.store.name}</p>
-                        <div className="flex items-center space-x-1">
-                          <Star className="h-3 w-3 text-yellow-500" />
-                          <span className="text-xs text-gray-500">{product.store.rating}</span>
-                        </div>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-green-600">R$ {product.price.toFixed(2)}</p>
-                      <p className="text-xs text-gray-500">por {product.unit}</p>
                     </div>
                   </div>
 
-                  <Button onClick={() => handleAddToCart(product.id)} disabled={!product.inStock} className="w-full">
+                  <Button onClick={() => handleAddToCart(product.id)} className="w-full">
                     <ShoppingCart className="h-4 w-4 mr-2" />
-                    {product.inStock ? "Adicionar ao Carrinho" : "Indisponível"}
+                    Adicionar ao Carrinho
                   </Button>
                 </div>
               </CardContent>
@@ -199,7 +179,7 @@ export default function ProductsPage() {
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold mb-4">Conflito de Lojas</h3>
             <p className="text-gray-600 mb-6">
-              Você já tem produtos de "{showConflictDialog.conflictStore}" no carrinho. Deseja remover o carrinho atual
+              Você já tem produtos de &quot;{showConflictDialog.conflictStore}&quot; no carrinho. Deseja remover o carrinho atual
               e adicionar este produto de outra loja?
             </p>
             <div className="flex space-x-3">

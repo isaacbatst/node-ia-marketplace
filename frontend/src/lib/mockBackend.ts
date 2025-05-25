@@ -1,48 +1,5 @@
-import type { Product, Recipe, Plan, Cart, CartItem, ChatMessage, CartComparison, RecipeFile } from "./types"
+import type { Product, Recipe, Cart, CartItem, ChatMessage, CartComparison, RecipeFile } from "./types"
 import { mockProducts, mockStores, popularRecipes } from "./mockData"
-
-// Dados mockados
-const mockRecipes: Recipe[] = [
-  {
-    id: "1",
-    title: "Macarrão com Carne Moída",
-    description: "Delicioso macarrão com molho de carne moída",
-    ingredients: ["500g macarrão", "300g carne moída", "1 cebola", "2 tomates", "molho de tomate"],
-    instructions: ["Cozinhe o macarrão", "Refogue a carne", "Adicione o molho"],
-    servings: 4,
-    prepTime: "30 min",
-    createdAt: new Date("2024-01-15"),
-  },
-  {
-    id: "2",
-    title: "Salada Caesar",
-    description: "Salada fresca com molho caesar",
-    ingredients: ["alface americana", "croutons", "queijo parmesão", "molho caesar"],
-    instructions: ["Lave a alface", "Misture os ingredientes"],
-    servings: 2,
-    prepTime: "15 min",
-    createdAt: new Date("2024-01-14"),
-  },
-]
-
-const mockPlans: Plan[] = [
-  {
-    id: "1",
-    title: "Plano Semanal Família",
-    description: "Plano alimentar para família de 4 pessoas",
-    days: [
-      {
-        day: "Segunda-feira",
-        meals: [
-          { id: "1", name: "Aveia com frutas", type: "breakfast", recipes: [] },
-          { id: "2", name: "Macarrão com Carne", type: "lunch", recipes: ["1"] },
-          { id: "3", name: "Salada Caesar", type: "dinner", recipes: ["2"] },
-        ],
-      },
-    ],
-    createdAt: new Date("2024-01-10"),
-  },
-]
 
 const mockCarts: Cart[] = [
   {
@@ -119,45 +76,6 @@ export async function createPersonalRecipe(recipeData: Partial<Recipe>): Promise
 export async function getAllRecipes(): Promise<Recipe[]> {
   await delay(400)
   return [...popularRecipes, ...personalRecipes]
-}
-
-export async function importPlanOrRecipe(fileOrText: string, type: "recipe" | "plan"): Promise<Recipe | Plan> {
-  await delay(1500)
-
-  if (type === "recipe") {
-    const newRecipe: Recipe = {
-      id: Date.now().toString(),
-      title: "Receita Importada",
-      description: "Receita importada do arquivo/texto",
-      ingredients: ["ingrediente 1", "ingrediente 2"],
-      instructions: ["passo 1", "passo 2"],
-      servings: 4,
-      prepTime: "30 min",
-      createdAt: new Date(),
-    }
-    mockRecipes.push(newRecipe)
-    return newRecipe
-  } else {
-    const newPlan: Plan = {
-      id: Date.now().toString(),
-      title: "Plano Importado",
-      description: "Plano alimentar importado",
-      days: [],
-      createdAt: new Date(),
-    }
-    mockPlans.push(newPlan)
-    return newPlan
-  }
-}
-
-export async function fetchUserRecipes(): Promise<Recipe[]> {
-  await delay(800)
-  return mockRecipes
-}
-
-export async function fetchUserPlans(): Promise<Plan[]> {
-  await delay(800)
-  return mockPlans
 }
 
 export async function fetchUserCarts(): Promise<Cart[]> {
@@ -299,8 +217,6 @@ export async function executeAction(actionType: string, payload: any): Promise<a
   switch (actionType) {
     case "add_to_cart":
       return { success: true, message: "Item adicionado ao carrinho" }
-    case "suggest_recipe":
-      return { success: true, recipe: mockRecipes[0] }
     case "optimize_cart":
       return { success: true, message: "Carrinho otimizado" }
     default:
@@ -325,11 +241,6 @@ export async function sendChatMessage(message: string): Promise<ChatMessage> {
         "Baseado no seu plano alimentar, sugiro otimizar suas compras comprando em apenas 2 supermercados para economizar tempo.",
       actions: [{ id: "3", label: "Otimizar carrinho", type: "optimize_cart", payload: {} }],
     },
-    {
-      content:
-        "Que tal uma receita de sobremesa para complementar seu plano? Tenho uma sugestão de pudim de leite condensado!",
-      actions: [{ id: "4", label: "Ver receita de pudim", type: "suggest_recipe", payload: { type: "dessert" } }],
-    },
   ]
 
   const randomResponse = responses[Math.floor(Math.random() * responses.length)]
@@ -339,7 +250,7 @@ export async function sendChatMessage(message: string): Promise<ChatMessage> {
     content: randomResponse.content,
     sender: "assistant",
     timestamp: new Date(),
-    actions: randomResponse.actions,
+    // actions: randomResponse.actions,
   }
 }
 

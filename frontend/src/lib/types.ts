@@ -1,21 +1,13 @@
 export interface Product {
   id: string
   name: string
-  description: string
   price: number
-  unit: string
-  category: string
   store: Store
-  image: string
-  inStock: boolean
 }
 
 export interface Store {
   id: string
   name: string
-  logo: string
-  rating: number
-  deliveryTime: string
 }
 
 export interface CartItem {
