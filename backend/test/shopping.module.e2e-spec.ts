@@ -40,9 +40,9 @@ describe('ShoppingModule', () => {
 
     const cartResponse = await request(server).get('/shopping/cart');
     expect(cartResponse.status).toBe(200);
-    expect(cartResponse.body.products).toHaveLength(1);
-    expect(cartResponse.body.products[0].id).toBe(1);
-    expect(cartResponse.body.products[0].quantity).toBe(2);
+    expect(cartResponse.body.items).toHaveLength(1);
+    expect(cartResponse.body.items[0].id).toBe(1);
+    expect(cartResponse.body.items[0].quantity).toBe(2);
   });
 
   it('should add a product to an existing cart if the store is the same', async () => {
@@ -64,14 +64,14 @@ describe('ShoppingModule', () => {
 
     const cartResponse = await request(server).get('/shopping/cart');
     expect(cartResponse.status).toBe(200);
-    expect(cartResponse.body.products).toHaveLength(2);
-    expect(cartResponse.body.products).toContainEqual(
+    expect(cartResponse.body.items).toHaveLength(2);
+    expect(cartResponse.body.items).toContainEqual(
       expect.objectContaining({
         id: 1,
         quantity: 2,
       }),
     );
-    expect(cartResponse.body.products).toContainEqual(
+    expect(cartResponse.body.items).toContainEqual(
       expect.objectContaining({
         id: 2,
         quantity: 3,
@@ -99,8 +99,53 @@ describe('ShoppingModule', () => {
     const cartResponse = await request(server).get('/shopping/cart');
     expect(cartResponse.status).toBe(200);
     expect(cartResponse.body.id).toBe(response2.body.id);
-    expect(cartResponse.body.products).toHaveLength(1);
-    expect(cartResponse.body.products[0].id).toBe(16);
-    expect(cartResponse.body.products[0].quantity).toBe(3);
+    expect(cartResponse.body.items).toHaveLength(1);
+    expect(cartResponse.body.items[0].id).toBe(16);
+    expect(cartResponse.body.items[0].quantity).toBe(3);
+  });
+
+  it('should update the quantity of a product in the cart', async () => {
+    const response = await request(server).post('/shopping/cart').send({
+      productId: 1,
+      quantity: 2,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.id).toBeDefined();
+
+    const response2 = await request(server)
+      .put(`/shopping/cart/${response.body.id}/items/1`)
+      .send({
+        quantity: 3,
+      });
+
+    expect(response2.status).toBe(200);
+
+    const cartResponse = await request(server).get('/shopping/cart');
+    expect(cartResponse.status).toBe(200);
+    expect(cartResponse.body.items).toHaveLength(1);
+    expect(cartResponse.body.items[0].id).toBe(1);
+    expect(cartResponse.body.items[0].quantity).toBe(3);
+  });
+
+  it('should remove a product from the cart', async () => {
+    const response = await request(server).post('/shopping/cart').send({
+      productId: 1,
+      quantity: 2,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body.id).toBeDefined();
+
+    const response3 = await request(server)
+      .delete(`/shopping/cart/${response.body.id}/items/1`)
+      .send();
+
+    expect(response3.status).toBe(200);
+
+    const cartResponse = await request(server).get('/shopping/cart');
+    expect(cartResponse.status).toBe(200);
+
+    expect(cartResponse.body.items).toHaveLength(0);
   });
 });

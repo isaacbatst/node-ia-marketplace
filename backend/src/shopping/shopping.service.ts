@@ -8,7 +8,7 @@ type Cart = {
     id: number;
     name: string;
   };
-  products: {
+  items: {
     id: number;
     name: string;
     price: number;
@@ -107,11 +107,11 @@ export class ShoppingService {
             'price', products.price,
             'quantity', cart_items.quantity
           )
-        ) as products
+        ) as items
       FROM carts
       JOIN stores ON carts.store_id = stores.id
-      JOIN cart_items ON carts.id = cart_items.cart_id
-      JOIN products ON cart_items.product_id = products.id
+      LEFT JOIN cart_items ON carts.id = cart_items.cart_id
+      LEFT JOIN products ON cart_items.product_id = products.id
       WHERE carts.user_id = $1 AND carts.active = true
       GROUP BY carts.id, stores.id
     `;
@@ -120,6 +120,41 @@ export class ShoppingService {
     if (result.rows.length === 0) {
       return null;
     }
-    return result.rows[0];
+
+    const hasItems = result.rows[0].items[0].id !== null;
+
+    return {
+      ...result.rows[0],
+      items: hasItems ? result.rows[0].items : [],
+      total: hasItems
+        ? result.rows[0].items.reduce(
+            (acc, item) => acc + item.price * item.quantity,
+            0,
+          )
+        : 0,
+    };
+  }
+
+  async updateCartItemQuantity(
+    cartId: number,
+    productId: number,
+    quantity: number,
+  ) {
+    const query = `
+      UPDATE cart_items 
+      SET quantity = $1 
+      WHERE cart_id = $2 AND product_id = $3
+    `;
+    const values = [quantity, cartId, productId];
+    await this.postgresService.client.query(query, values);
+  }
+
+  async removeItemFromCart(cartId: number, productId: number) {
+    const query = `
+      DELETE FROM cart_items 
+      WHERE cart_id = $1 AND product_id = $2
+    `;
+    const values = [cartId, productId];
+    await this.postgresService.client.query(query, values);
   }
 }
