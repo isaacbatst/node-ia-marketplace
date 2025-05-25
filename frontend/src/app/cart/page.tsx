@@ -1,29 +1,68 @@
 "use client"
 
-import { useEffect } from "react"
-import { useApp } from "@/contexts/AppContext"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, Trash2, Star, Plus, Minus } from "lucide-react"
-import { getCurrentCart, removeFromCart } from "@/lib/mockBackend"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
+import useSWR from "swr"
+import { getCart, removeCartItem, updateCartItem } from "../../api"
+import { Cart } from "../../lib/types"
 
 export default function CartPage() {
-  const { currentCart, setCurrentCart } = useApp()
+  const cart = useSWR<Cart>("/api/cart", () => getCart());
 
-  useEffect(() => {
-    getCurrentCart().then(setCurrentCart)
-  }, [setCurrentCart])
-
-  const handleRemoveItem = async (itemId: string) => {
+  const handleRemoveItem = async (itemId: number) => {
     try {
-      const updatedCart = await removeFromCart(itemId)
-      setCurrentCart(updatedCart)
+      if(!cart.data) return
+      await cart.mutate(async (current) => {
+        if (!current) return current;
+        await removeCartItem(current.id, itemId)
+        return {
+          ...current,
+          items: current.items.filter((item) => item.id !== itemId),
+        }
+      }, {
+        rollbackOnError: true,
+        optimisticData: (current) => {
+          return {
+            ...current!,
+            items: current!.items.filter((item) => item.id !== itemId),
+          }
+        },
+      })
     } catch (error) {
       console.error("Erro ao remover item:", error)
     }
   }
 
-  if (!currentCart || currentCart.items.length === 0) {
+  const handleClickUpdateItem = async (itemId: number, quantity: number) => {
+    if(!cart.data) return
+    try {
+      await cart.mutate(async (current) => {
+        if (!current) return current;
+        await updateCartItem(current.id, itemId, quantity)
+        return {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === itemId ? { ...item, quantity } : item
+          ),
+        }
+      }, {
+        rollbackOnError: true,
+        optimisticData: (current) => {
+          return {
+            ...current!,
+            items: current!.items.map((item) =>
+              item.id === itemId ? { ...item, quantity } : item
+            ),
+          }
+        },
+      })
+    } catch (error) {
+      console.error("Erro ao atualizar item:", error)
+    }
+  }
+
+  if (!cart.data || cart.data.items.length === 0) {
     return (
       <div className="p-6 pt-20 lg:pt-6">
         <div className="text-center py-12">
@@ -48,47 +87,43 @@ export default function CartPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <span className="text-lg">{currentCart.store.logo}</span>
                 <div>
-                  <span>{currentCart.store.name}</span>
-                  <div className="flex items-center space-x-1 mt-1">
-                    <Star className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm text-gray-500">{currentCart.store.rating}</span>
-                    <span className="text-sm text-gray-500">• {currentCart.store.deliveryTime}</span>
-                  </div>
+                  <span>{cart.data.store.name}</span>
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {currentCart.items.map((item) => (
+                {cart.data.items.map((item) => (
                   <div key={item.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                    <img
-                      src={item.product.image || "/placeholder.svg"}
-                      alt={item.product.name}
-                      className="w-16 h-16 object-cover rounded-lg"
-                    />
-
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{item.product.name}</h3>
-                      <p className="text-sm text-gray-600">{item.product.description}</p>
-                      <p className="text-sm font-medium text-green-600">
-                        R$ {item.product.price.toFixed(2)} por {item.product.unit}
-                      </p>
+                      <h3 className="font-medium text-gray-900">{item.name}</h3>
                     </div>
 
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="icon" className="h-8 w-8">
+                      <Button variant="outline" size="icon" className="h-8 w-8"
+                        onClick={() => {
+                          if (item.quantity > 1) {
+                            handleClickUpdateItem(item.id, item.quantity - 1)
+                          } else {
+                            handleRemoveItem(item.id)
+                          }
+                        }}
+                      >
                         <Minus className="h-4 w-4" />
                       </Button>
                       <span className="w-8 text-center font-medium">{item.quantity}</span>
-                      <Button variant="outline" size="icon" className="h-8 w-8">
+                      <Button variant="outline" size="icon" className="h-8 w-8"
+                        onClick={() => {
+                          handleClickUpdateItem(item.id, item.quantity + 1)
+                        }}
+                      >
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
 
                     <div className="text-right">
-                      <p className="font-bold text-gray-900">R$ {(item.product.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-bold text-gray-900">R$ {(item.price / 100 * item.quantity).toFixed(2)}</p>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -115,24 +150,16 @@ export default function CartPage() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-medium">R$ {currentCart.total.toFixed(2)}</span>
+                  <span className="font-medium">R$ {(cart.data.total / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Taxa de entrega:</span>
                   <span className="font-medium">R$ 5,90</span>
                 </div>
-                <div className="border-t pt-2">
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total:</span>
-                    <span>R$ {(currentCart.total + 5.9).toFixed(2)}</span>
-                  </div>
-                </div>
               </div>
 
               <div className="space-y-2 text-sm text-gray-600">
-                <p>• {currentCart.items.length} itens no carrinho</p>
-                <p>• Entrega em {currentCart.store.deliveryTime}</p>
-                <p>• Avaliação da loja: {currentCart.store.rating}⭐</p>
+                <p>• {cart.data.items.length} itens no carrinho</p>
               </div>
 
               <Button className="w-full" size="lg">

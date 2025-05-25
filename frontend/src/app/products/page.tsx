@@ -7,16 +7,18 @@ import type { Product } from "@/lib/types"
 import { Search, ShoppingCart } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import useSWR from "swr"
-import { fetchProducts } from "../../api"
+import { addToCart, fetchProducts } from "../../api"
+import { toast } from "sonner"
 
 export default function ProductsPage() {
   const params = useSearchParams();
   const searchTerm = params.get("q") || ""
-
+  
   const products = useSWR<Product[]>(`/api/products?q=${searchTerm}`, () => fetchProducts(searchTerm))
 
-  const handleAddToCart = async (productId: string) => {
-    alert(`Produto ${productId} adicionado ao carrinho!`)
+  const handleAddToCart = async (productId: number) => {
+    await addToCart(productId, 1)
+    toast.success("Produto adicionado ao carrinho")
   }
 
   return (
@@ -67,7 +69,7 @@ export default function ProductsPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-green-600">R$ {product.price.toFixed(2)}</p>
+                      <p className="text-lg font-bold text-green-600">R$ {(product.price / 100).toFixed(2)}</p>
                     </div>
                   </div>
 
