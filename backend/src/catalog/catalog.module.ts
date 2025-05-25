@@ -5,6 +5,7 @@ import { PostgresService } from '../shared/infra/postgres.service';
 
 @Module({
   imports: [],
+  exports: [CatalogService],
   controllers: [CatalogController],
   providers: [CatalogService, PostgresService],
 })
