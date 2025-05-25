@@ -25,9 +25,8 @@ Permitir que o usuário:
 - **PostgreSQL** – para persistência de dados
   - **PGVector** – para indexação e busca de embeddings
 - **OpenAI API** – para integração com o modelo de linguagem
+  - **OpenAI Responses API** – para interações com o agente de IA
   - **OpenAI Embeddings API** – para vetorização de receitas e produtos
-  - **OpenAI File Upload + Responses API** – para permitir leitura contextual de arquivos de receitas
-  - **Cosine Similarity Local** – para validar produtos similares na montagem do carrinho
 
 ## Diagrama ER
 
