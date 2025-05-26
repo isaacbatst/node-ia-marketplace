@@ -1,12 +1,13 @@
 "use client";
 
-import { getCatalog } from "@/api";
+import { addToCart, getCatalog } from "@/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Product } from "@/types";
 import { Search, ShoppingCart } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import useSWR from "swr";
 
 export default function ProductsPage() {
@@ -14,6 +15,11 @@ export default function ProductsPage() {
   const search = params.get("q") || "";
 
   const products = useSWR<Product[]>(`/api/products?q=${search}`, () => getCatalog(search));
+
+  const handleAddToCart = async (productId: number) => {
+    await addToCart(productId, 1);
+    toast.success("Produto adicionado ao carrinho");
+  };
 
   return (
     <div className="p-6 pt-20 lg:pt-6">
@@ -67,7 +73,7 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                <Button className="w-full">
+                <Button className="w-full" onClick={() => handleAddToCart(product.id)}>
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Adicionar ao Carrinho
                 </Button>
