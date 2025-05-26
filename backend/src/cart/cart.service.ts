@@ -7,6 +7,12 @@ type Cart = {
   created_at: Date;
   store_id: number;
   active: boolean;
+  items: {
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
 };
 
 @Injectable()
@@ -22,10 +28,12 @@ export class CartService {
       throw new NotFoundException('Product not found');
     }
 
-    const existingCart = await this.postgresService.client.query<Cart>(
-      `SELECT id, store_id FROM carts WHERE user_id = $1 AND active = true`,
-      [userId],
-    );
+    const existingCart = await this.postgresService.client.query<{
+      id: number;
+      store_id: number;
+    }>(`SELECT id, store_id FROM carts WHERE user_id = $1 AND active = true`, [
+      userId,
+    ]);
 
     if (
       existingCart.rows.length > 0 &&
@@ -47,14 +55,6 @@ export class CartService {
       existingCart.rows.length > 0 &&
       existingCart.rows[0].store_id !== product.rows[0].store_id
     ) {
-      await this.postgresService.client.query(
-        `INSERT INTO carts (user_id, store_id) VALUES ($1, $2)`,
-        [userId, product.rows[0].store_id],
-      );
-      await this.postgresService.client.query(
-        `INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3)`,
-        [existingCart.rows[0].id, productId, quantity],
-      );
       await this.postgresService.client.query(
         `UPDATE carts SET active = false WHERE id = $1`,
         [existingCart.rows[0].id],
@@ -80,6 +80,10 @@ export class CartService {
     const result = await this.postgresService.client.query<Cart>(
       `SELECT 
         carts.id AS id,
+        carts.user_id AS user_id,
+        carts.created_at AS created_at,
+        carts.store_id AS store_id,
+        carts.active AS active,
         json_agg(
           json_build_object(
             'id', products.id,
@@ -89,8 +93,8 @@ export class CartService {
           )
         ) as items
       FROM carts 
-        JOIN cart_items ON carts.id = cart_items.cart_id
-        JOIN products ON cart_items.product_id = products.id
+        LEFT JOIN cart_items ON carts.id = cart_items.cart_id
+        LEFT JOIN products ON cart_items.product_id = products.id
 
       WHERE user_id = $1 AND active = true
       GROUP BY carts.id
@@ -98,6 +102,60 @@ export class CartService {
       [userId],
     );
 
-    return result.rows[0] ?? null;
+    const hasItems =
+      result.rows[0].items.length > 0 && result.rows[0].items[0].id !== null;
+
+    return result.rows[0]
+      ? {
+          ...result.rows[0],
+          items: hasItems ? result.rows[0].items : [],
+        }
+      : null;
+  }
+
+  async updateCartItemQuantity(
+    userId: number,
+    productId: number,
+    quantity: number,
+  ) {
+    const cart = await this.getCart(userId);
+
+    if (!cart) {
+      throw new NotFoundException('Cart not found 1');
+    }
+
+    if (cart.user_id !== userId) {
+      throw new NotFoundException('Cart not found 2');
+    }
+
+    if (cart.items.every((item) => item.id !== productId)) {
+      throw new NotFoundException('Product not found in cart');
+    }
+
+    await this.postgresService.client.query(
+      `UPDATE cart_items SET quantity = $1 WHERE cart_id = $2 AND product_id = $3`,
+      [quantity, cart.id, productId],
+    );
+  }
+
+  async removeCartItem(userId: number, productId: number) {
+    const cart = await this.getCart(userId);
+
+    if (!cart) {
+      throw new NotFoundException('Cart not found');
+    }
+
+    if (cart.user_id !== userId) {
+      throw new NotFoundException('Cart not found');
+    }
+
+    if (cart.items.every((item) => item.id !== productId)) {
+      throw new NotFoundException('Product not found in cart');
+    }
+
+    await this.postgresService.client.query(
+      `DELETE FROM cart_items WHERE cart_id = $1 AND product_id = $2`,
+      [cart.id, productId],
+    );
   }
 }

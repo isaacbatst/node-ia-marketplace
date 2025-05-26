@@ -97,4 +97,44 @@ describe('Cart (e2e)', () => {
     expect(responseCart.status).toBe(200);
     expect(responseCart.body.id).toBe(response2.body.id);
   });
+
+  it('should update the quantity of an existing product in the cart', async () => {
+    const response = await request(app.getHttpServer()).post('/cart').send({
+      productId: 1,
+      quantity: 2,
+    });
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('id');
+    const response2 = await request(app.getHttpServer())
+      .put(`/cart/${response.body.id}/items/1`)
+      .send({
+        quantity: 5,
+      });
+    expect(response2.status).toBe(200);
+
+    const responseCart = await request(app.getHttpServer()).get('/cart/');
+    expect(responseCart.status).toBe(200);
+    expect(responseCart.body.id).toBe(response.body.id);
+    expect(responseCart.body.items.length).toBe(1);
+    expect(responseCart.body.items[0].id).toBe(1);
+    expect(responseCart.body.items[0].quantity).toBe(5);
+  });
+
+  it('should remove a product from the cart if quantity is 0', async () => {
+    const response = await request(app.getHttpServer()).post('/cart').send({
+      productId: 1,
+      quantity: 2,
+    });
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('id');
+    const response2 = await request(app.getHttpServer()).delete(
+      `/cart/${response.body.id}/items/1`,
+    );
+    expect(response2.status).toBe(200);
+
+    const responseCart = await request(app.getHttpServer()).get('/cart/');
+    expect(responseCart.status).toBe(200);
+    expect(responseCart.body.id).toBe(response.body.id);
+    expect(responseCart.body.items.length).toBe(0);
+  });
 });
