@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CatalogModule } from './catalog/catalog.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -8,6 +9,7 @@ import { CatalogModule } from './catalog/catalog.module';
       isGlobal: true,
     }),
     CatalogModule,
+    CartModule,
   ],
   controllers: [],
   providers: [],
