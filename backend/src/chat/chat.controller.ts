@@ -1,4 +1,6 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
   Get,
   NotFoundException,
@@ -26,5 +28,17 @@ export class ChatController {
       throw new NotFoundException('Chat session not found');
     }
     return session;
+  }
+
+  @Post(':sessionId/messages')
+  async addUserMessage(
+    @Param('sessionId') sessionId: number,
+    @Body('content') content: string,
+  ) {
+    if (!content || typeof content !== 'string') {
+      throw new BadRequestException('Content must be a non-empty string');
+    }
+    const message = await this.chatService.addUserMessage(sessionId, content);
+    return message;
   }
 }
