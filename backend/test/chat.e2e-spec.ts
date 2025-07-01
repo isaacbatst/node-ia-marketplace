@@ -55,5 +55,17 @@ describe('Chat (e2e)', () => {
     expect(messageResponse.status).toBe(201);
     expect(messageResponse.body).toHaveProperty('id');
     expect(messageResponse.body).toHaveProperty('content', 'Hello, world!');
+
+    const getResponse = await request(app.getHttpServer()).get(
+      `/chat/${sessionId}`,
+    );
+    expect(getResponse.status).toBe(200);
+    expect(getResponse.body.messages).toBeDefined();
+    expect(getResponse.body.messages[0]).toHaveProperty('sender', 'user');
+    expect(getResponse.body.messages[0]).toHaveProperty(
+      'content',
+      'Hello, world!',
+    );
+    expect(getResponse.body.messages[1]).toHaveProperty('sender', 'assistant');
   });
 });
