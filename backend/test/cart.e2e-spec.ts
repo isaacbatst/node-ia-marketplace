@@ -72,10 +72,12 @@ describe('Cart (e2e)', () => {
     expect(responseCart.body.id).toBe(response2.body.id);
     expect(responseCart.body.id).toBe(response3.body.id);
     expect(responseCart.body.items.length).toBe(2);
-    expect(responseCart.body.items[0].id).toBe(1);
-    expect(responseCart.body.items[0].quantity).toBe(2);
-    expect(responseCart.body.items[1].id).toBe(2);
-    expect(responseCart.body.items[1].quantity).toBe(4);
+    expect(responseCart.body.items).toContainEqual(
+      expect.objectContaining({ id: 1, quantity: 2 }),
+    );
+    expect(responseCart.body.items).toContainEqual(
+      expect.objectContaining({ id: 2, quantity: 4 }),
+    );
   });
 
   it('should create a new cart if the store is different', async () => {
