@@ -1,6 +1,36 @@
 import { LlmService } from '@/shared/llm.service';
 import { PostgresService } from '@/shared/postgres.service';
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+
+type ChatSession = {
+  id: number;
+  created_at: Date;
+  user_id: number;
+};
+
+type ChatMessage = {
+  id: number;
+  content: string;
+  sender: 'user' | 'assistant';
+  openai_message_id: string | null;
+  created_at: Date;
+  message_type: 'text' | 'suggest_carts_result';
+};
+
+type ChatMessageAction = {
+  id: number;
+  chat_message_id: number;
+  action_type: string;
+  payload: { input: string };
+  created_at: Date;
+  confirmed_at: Date | null;
+  executed_at: Date | null;
+};
 
 @Injectable()
 export class ChatService {
@@ -131,5 +161,74 @@ export class ChatService {
       [sessionId, content, sender, openaiMessageId || null, messageType],
     );
     return result.rows[0];
+  }
+
+  async confirmAction(sessionId: number, actionId: number) {
+    const session = await this.postgresService.client.query<ChatSession>(
+      `SELECT * FROM chat_sessions WHERE id = $1`,
+      [sessionId],
+    );
+
+    if (session.rows.length === 0) {
+      return null;
+    }
+
+    const result = await this.postgresService.client.query<ChatMessageAction>(
+      `SELECT * FROM chat_messages_actions WHERE id = $1 AND confirmed_at IS NULL`,
+      [actionId],
+    );
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    if (result.rows[0].confirmed_at) {
+      throw new ConflictException('This action has already been confirmed.');
+    }
+
+    await this.postgresService.client.query(
+      `UPDATE chat_messages_actions SET confirmed_at = NOW() WHERE id = $1`,
+      [actionId],
+    );
+
+    if (result.rows[0].action_type === 'suggest_carts') {
+      const embeddings = await this.llmService.embedInput(
+        result.rows[0].payload.input,
+      );
+      if (!embeddings) {
+        throw new BadGatewayException('Failed to get embeddings from the LLM');
+      }
+
+      const relevantProductsGroupedByStore =
+        await this.postgresService.client.query<{
+          store_id: number;
+          products: {
+            id: number;
+            name: string;
+            price: number;
+            similarity: number;
+          }[];
+        }>(
+          `
+        SELECT store_id, JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'id', id,
+            'name', name,
+            'price', price,
+            'similarity', p.embedding <=> $1
+          )
+        ) AS products
+        FROM products p
+        WHERE p.embedding <=> $1 < 0.65
+        GROUP BY store_id
+      `,
+          [JSON.stringify(embeddings.embedding)],
+        );
+
+      console.dir(relevantProductsGroupedByStore.rows, { depth: null });
+    } else {
+      throw new InternalServerErrorException(
+        `Action type ${result.rows[0].action_type} is not supported.`,
+      );
+    }
   }
 }

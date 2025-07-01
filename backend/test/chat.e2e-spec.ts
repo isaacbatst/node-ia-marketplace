@@ -69,7 +69,7 @@ describe('Chat (e2e)', () => {
     expect(getResponse.body.messages[1]).toHaveProperty('sender', 'assistant');
   });
 
-  it('should add new messages to the chat session', async () => {
+  it('should add new messages to the chat session with action', async () => {
     const postResponse = await request(app.getHttpServer()).post('/chat');
     expect(postResponse.status).toBe(201);
     expect(postResponse.body).toHaveProperty('id');
@@ -99,5 +99,20 @@ describe('Chat (e2e)', () => {
     );
     expect(getResponse.body.messages[1]).toHaveProperty('sender', 'assistant');
     expect(getResponse.body.messages[1]).toHaveProperty('action');
+
+    const postConfirmResponse = await request(app.getHttpServer()).post(
+      `/chat/${sessionId}/actions/${getResponse.body.messages[1].action.id}/confirm`,
+    );
+    expect(postConfirmResponse.status).toBe(201);
+
+    const getAfterConfirmResponse = await request(app.getHttpServer()).get(
+      `/chat/${sessionId}`,
+    );
+    expect(getAfterConfirmResponse.status).toBe(200);
+    expect(getAfterConfirmResponse.body.messages).toHaveLength(3);
+    expect(getAfterConfirmResponse.body.messages[2]).toHaveProperty(
+      'sender',
+      'assistant',
+    );
   });
 });

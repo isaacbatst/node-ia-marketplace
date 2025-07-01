@@ -44,6 +44,25 @@ export class LlmService {
     });
   }
 
+  async embedInput(input: string): Promise<{ embedding: number[] } | null> {
+    try {
+      console.log('LlmService.embedInput called with input:', input);
+      const response = await this.client.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: input,
+      });
+      console.log(
+        'LlmService.embedInput response:',
+        response.data[0].embedding.length,
+      );
+
+      return { embedding: response.data[0].embedding };
+    } catch (error) {
+      console.error('Error in LlmService.embedInput:', error);
+      return null;
+    }
+  }
+
   async answerMessage(
     message: string,
     previousMessageId: string | null = null,

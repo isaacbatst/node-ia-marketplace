@@ -41,4 +41,16 @@ export class ChatController {
     const message = await this.chatService.addUserMessage(sessionId, content);
     return message;
   }
+
+  @Post(':sessionId/actions/:actionId/confirm')
+  async confirmAction(
+    @Param('sessionId') sessionId: number,
+    @Param('actionId') actionId: number,
+  ) {
+    const action = await this.chatService.confirmAction(sessionId, actionId);
+    if (!action) {
+      throw new NotFoundException('Action not found or already confirmed');
+    }
+    return action;
+  }
 }
