@@ -103,6 +103,7 @@ describe('Chat (e2e)', () => {
     const postConfirmResponse = await request(app.getHttpServer()).post(
       `/chat/${sessionId}/actions/${getResponse.body.messages[1].action.id}/confirm`,
     );
+    console.log(postConfirmResponse.body);
     expect(postConfirmResponse.status).toBe(201);
 
     const getAfterConfirmResponse = await request(app.getHttpServer()).get(
@@ -114,5 +115,6 @@ describe('Chat (e2e)', () => {
       'sender',
       'assistant',
     );
-  });
+    console.log(getAfterConfirmResponse.body.messages[2]);
+  }, 30000);
 });

@@ -62,7 +62,9 @@ CREATE TABLE carts (
     user_id INTEGER REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     store_id INTEGER REFERENCES stores(id),
-    active BOOLEAN DEFAULT TRUE
+    active BOOLEAN DEFAULT TRUE,
+    score INTEGER DEFAULT NULL,
+    suggested_by_message_id INTEGER REFERENCES chat_messages(id)
 );
 
 CREATE TABLE cart_items (

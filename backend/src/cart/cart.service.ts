@@ -1,7 +1,7 @@
 import { PostgresService } from '../shared/postgres.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-type Cart = {
+export type Cart = {
   id: number;
   user_id: number;
   created_at: Date;

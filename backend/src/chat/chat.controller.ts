@@ -47,10 +47,11 @@ export class ChatController {
     @Param('sessionId') sessionId: number,
     @Param('actionId') actionId: number,
   ) {
-    const action = await this.chatService.confirmAction(sessionId, actionId);
-    if (!action) {
-      throw new NotFoundException('Action not found or already confirmed');
-    }
-    return action;
+    await this.chatService.confirmAction(sessionId, actionId);
+  }
+
+  @Post(':cartId/choose')
+  async chooseCart(@Param('cartId') cartId: number) {
+    await this.chatService.chooseCart(cartId, this.userId);
   }
 }
