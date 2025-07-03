@@ -21,6 +21,12 @@ export class ChatController {
     return session;
   }
 
+  @Get()
+  async getChatSessions() {
+    const sessions = await this.chatService.getChatSessions(this.userId);
+    return sessions;
+  }
+
   @Get(':sessionId')
   async getChatSession(@Param('sessionId') sessionId: number) {
     const session = await this.chatService.getChatSession(sessionId);

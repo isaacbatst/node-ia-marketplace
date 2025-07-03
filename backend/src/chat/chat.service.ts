@@ -49,6 +49,36 @@ export class ChatService {
     return result.rows[0];
   }
 
+  async getChatSessions(userId: number) {
+    const result = await this.postgresService.client.query<ChatSession>(
+      `SELECT 
+        cs.id, 
+        cs.user_id,
+        cs.created_at,
+        COALESCE(
+          json_agg(
+            jsonb_build_object(
+              'id', cm.id,
+              'chat_session_id', cm.chat_session_id,
+              'content', cm.content,
+              'sender', cm.sender,
+              'openai_message_id', cm.openai_message_id,
+              'created_at', cm.created_at,
+              'message_type', cm.message_type
+            )
+          ) FILTER (WHERE cm.id IS NOT NULL), 
+          '[]'
+        ) AS messages
+        FROM chat_sessions as cs
+        LEFT JOIN chat_messages as cm ON cs.id = cm.chat_session_id
+        WHERE user_id = $1 
+        GROUP BY cs.id
+        ORDER BY cs.created_at DESC`,
+      [userId],
+    );
+    return result.rows;
+  }
+
   async getChatSession(sessionId: number) {
     const result = await this.postgresService.client.query<{
       id: number;
@@ -114,15 +144,32 @@ export class ChatService {
         }
 
         const cartsResult = await this.postgresService.client.query<{
+          id: number;
           store_id: number;
           store_name: string;
           score: number;
+          products: {
+            id: number;
+            name: string;
+            price: number;
+            quantity: number;
+          }[];
         }>(
           `
-          SELECT c.store_id, s.name AS store_name, c.score
+          SELECT c.id, c.store_id, s.name AS store_name, c.score, jSON_AGG(
+            JSON_BUILD_OBJECT(
+              'id', p.id,
+              'name', p.name,
+              'price', p.price,
+              'quantity', ci.quantity
+            )
+          ) AS products
           FROM carts c
           JOIN stores s ON c.store_id = s.id
+          JOIN cart_items ci ON c.id = ci.cart_id
+          JOIN products p ON ci.product_id = p.id
           WHERE c.suggested_by_message_id = $1
+          GROUP BY c.store_id, s.name, c.score, c.id
         `,
           [message.id],
         );
@@ -130,9 +177,14 @@ export class ChatService {
         return {
           ...message,
           carts: cartsResult.rows.map((row) => ({
+            id: row.id,
             store_id: row.store_id,
             store_name: row.store_name,
             score: row.score,
+            total: row.products.reduce(
+              (sum, product) => sum + product.price * product.quantity,
+              0,
+            ),
           })),
         };
       }),

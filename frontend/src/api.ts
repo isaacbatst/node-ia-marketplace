@@ -35,3 +35,55 @@ export const updateCartItemQuantity = async (cartId: number, productId: number, 
 export const removeCartItem = async (cartId: number, productId: number) => {
   await api.delete(`/cart/${cartId}/items/${productId}`);
 }
+
+
+export const getChatSessions = async () => {
+  const response = await api.get("/chat");
+  return response.data;
+};
+
+export const getChatSession = async (sessionId: number) => {
+  const response = await api.get(`/chat/${sessionId}`);
+  return response.data;
+};
+
+export const createChatSession = async () => {
+  try {
+    const response = await api.post<{ id: number }>("/chat");
+    return response.data;
+  } catch (error) {
+    console.error("Error creating chat session:", error);
+    return null;
+  }
+};
+
+export const sendMessageToChat = async (sessionId: number, message: string) => {
+  try {
+    const response = await api.post(`/chat/${sessionId}/messages`, {
+      content: message,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error sending message to chat:", error);
+    return null;
+  }
+};
+
+export const chooseCartFromComparison = async (cartId: number) => {
+  try {
+    await api.post(`/chat/${cartId}/choose`);
+  } catch (error) {
+    console.error("Error choosing cart from comparison:", error);
+    return null;
+  }
+};
+
+export const confirmAction = async (actionId: number, sessionId: number) => {
+  try {
+    const response = await api.post(`/chat/${sessionId}/actions/${actionId}/confirm`);
+    return response.data;
+  } catch (error) {
+    console.error("Error confirming action:", error);
+    return null;
+  }
+};
