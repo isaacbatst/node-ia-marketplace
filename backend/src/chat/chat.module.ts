@@ -1,11 +1,12 @@
-import { Module } from '@nestjs/common';
-import { ChatController } from './chat.controller';
 import { PostgresService } from '@/shared/postgres.service';
+import { Module } from '@nestjs/common';
+import { LlmModule } from '../shared/llm/llm.module';
+import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
-import { LlmService } from '@/shared/llm.service';
 
 @Module({
+  imports: [LlmModule],
   controllers: [ChatController],
-  providers: [PostgresService, ChatService, LlmService],
+  providers: [PostgresService, ChatService],
 })
 export class ChatModule {}
