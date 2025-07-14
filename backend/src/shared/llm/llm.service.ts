@@ -18,16 +18,25 @@ export abstract class LlmService {
       }[];
     }[],
     input: string,
-  ) : Promise<(SuggestCarts & { responseId: string }) | null>
+  ): Promise<(SuggestCarts & { responseId: string }) | null>;
 
-  abstract batchEmbedProducts(products: { id: number; name: string }[]): Promise<void>
-  abstract handleWebhookEvent(rawBody: string, headers: Record<string, string>): Promise<{
-    productId: string;
-    embedding: number[];
-  }[] | null>
-  abstract embedInput(input: string): Promise<{ embedding: number[] } | null>
+  abstract batchEmbedProducts(
+    products: { id: number; name: string }[],
+  ): Promise<void>;
+  abstract handleWebhookEvent(
+    rawBody: string,
+    headers: Record<string, string>,
+  ): Promise<
+    | {
+        productId: string;
+        embedding: number[];
+      }[]
+    | null
+  >;
+  abstract embedInput(input: string): Promise<{ embedding: number[] } | null>;
   abstract answerMessage(
     message: string,
     previousMessageId: string | null,
-  ): Promise<(AnswerMessage & { responseId: string }) | null>
+    previousMessages: { content: string; role: string }[],
+  ): Promise<(AnswerMessage & { responseId: string }) | null>;
 }
