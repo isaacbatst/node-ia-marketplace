@@ -33,6 +33,8 @@ export class CatalogService implements OnApplicationBootstrap {
       return;
     }
 
+    console.log(`Batch embedding ${products.rowCount} products`);
+
     await this.llmService.batchEmbedProducts(products.rows);
   }
 

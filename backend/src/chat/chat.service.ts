@@ -194,8 +194,10 @@ export class ChatService {
   async addUserMessage(sessionId: number, content: string) {
     const chatMessages = await this.postgresService.client.query<{
       openai_message_id: string | null;
+      content: string;
+      sender: 'user' | 'assistant';
     }>(
-      `SELECT openai_message_id FROM chat_messages WHERE chat_session_id = $1 AND sender = 'assistant' ORDER BY created_at DESC LIMIT 1`,
+      `SELECT openai_message_id, content, sender FROM chat_messages WHERE chat_session_id = $1 AND sender = 'assistant' ORDER BY created_at DESC`,
       [sessionId],
     );
 
@@ -208,6 +210,10 @@ export class ChatService {
     const llmReponse = await this.llmService.answerMessage(
       content,
       chatMessages.rows[0]?.openai_message_id || null,
+      chatMessages.rows.map((msg) => ({
+        content: msg.content,
+        role: msg.sender,
+      })),
     );
 
     if (!llmReponse) {
